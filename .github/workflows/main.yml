@@ -1,4 +1,4 @@
-name: 'print_ip'
+name: 'otus-print-ip'
 
 on:
   push:
