@@ -29,9 +29,6 @@ template<typename T> concept Integer = std::is_integral_v<T>;
 ///          returns elements of \a T one by one.
 template<Integer T> generator<short> process(const T& addr)
 {
-    //auto a = endiannes::reverse(addr);
-    //for(std::size_t cntr = 0; cntr < sizeof(T); ++cntr, a >>= 8)
-    //    co_yield a & 0xFF;
     for(std::size_t cntr = 0; cntr < sizeof(T); ++cntr)
         co_yield ((addr >> (sizeof(T) - cntr - 1)*8) & 0xFF);
 }
@@ -47,48 +44,48 @@ template<Container T> generator<short> process(const T& addr)
         co_yield it;
 }
 
+template<typename T> void print(const T& var, std::size_t size)
+{
+    using std::cout;
+    std::size_t cntr = 0;
+    for(const auto it:print_ip_helpers::process(var))
+    {
+        cout << it;
+        if(cntr++ < size - 1)
+            cout << '.';
+    }
+    cout << '\n';
+}
+
+}
+
+/// \brief Prints \a addr as is
+void print_ip(const std::string& addr)
+{
+    std::cout << addr << '\n';
 }
 
 /// \brief   Prints \a addr like it's an ip address
 /// \details If \a T is an integer, prints addr's bytes in reverse order, e.g. starting from
 ///          higher byte, separated by dots.
-///          If \a T is std::vector<t> or std::list<t>, where \a t is an integer,
-///          prints elements of \a T one by one, separated by dots.
-///          If \a T is std::string, print \a addr as is.
-template<typename T> void print_ip(const T& addr)
+template<typename T, std::enable_if_t<std::is_integral_v<T>, bool> = true> void print_ip(const T& addr)
+//template<print_ip_helpers::Integer T> void print_ip(const T& addr)
 {
-    using std::cout;
-    if constexpr(std::is_same_v<T, std::string>)
-    {
-        cout << addr << '\n';
-    }
-    else
-    {
-        auto print = [&addr](std::size_t size)
-        {
-            std::size_t cntr = 0;
-            for(auto it:print_ip_helpers::process(addr))
-            {
-                cout << it;
-                if(cntr++ < size - 1)
-                    cout << '.';
-            }
-            cout << '\n';
-        };
+    print_ip_helpers::print(addr, sizeof(T));
+}
 
-        if constexpr(std::is_integral_v<T>)
-        {
-            print(sizeof(T));
-        }
-        else if constexpr((std::is_same_v<T, std::vector<typename T::value_type>>
-                           && std::is_integral_v<typename T::value_type>)
-                          ||
-                          (std::is_same_v<T, std::list<typename T::value_type>>
-                           && std::is_integral_v<typename T::value_type>))
-        {
-            print(addr.size());
-        }
-    }
+/// \brief   Prints \a addr like it's an ip address
+/// \details If \a T is std::vector<t> or std::list<t>, where \a t is an integer,
+///          prints elements of \a T one by one, separated by dots.
+template<typename T, std::enable_if_t<(std::is_same_v<T, std::vector<typename T::value_type>>
+                                               && std::is_integral_v<typename T::value_type>)
+                                             ||
+                                             (std::is_same_v<T, std::list<typename T::value_type>>
+                                               && std::is_integral_v<typename T::value_type>), bool> = true>
+void print_ip(const T& addr)
+//template<print_ip_helpers::Container T> void print_ip(const T& addr)
+{
+    print_ip_helpers::print(addr, addr.size());
 }
 
 }
